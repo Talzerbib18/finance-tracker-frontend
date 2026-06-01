@@ -1,0 +1,188 @@
+<div class="page-header">
+  <div>
+    <h1>Transactions</h1>
+    <p>Gérez vos revenus et dépenses</p>
+  </div>
+  <button class="btn btn-primary" (click)="openCreate()">+ Ajouter</button>
+</div>
+
+<!-- Résumé -->
+<div class="grid-3" style="margin-bottom: 24px;">
+  <div class="card summary-card income-card">
+    <div class="summary-icon">💵</div>
+    <div>
+      <div class="summary-label">Total Revenus</div>
+      <div class="summary-value">{{ formatCurrency(totalIncome) }}</div>
+    </div>
+  </div>
+  <div class="card summary-card expense-card">
+    <div class="summary-icon">💸</div>
+    <div>
+      <div class="summary-label">Total Dépenses</div>
+      <div class="summary-value">{{ formatCurrency(totalExpenses) }}</div>
+    </div>
+  </div>
+  <div class="card summary-card">
+    <div class="summary-icon">⚖️</div>
+    <div>
+      <div class="summary-label">{{ transactions.length }} transaction(s)</div>
+      <div class="summary-value" [class.positive]="totalIncome - totalExpenses >= 0" [class.negative]="totalIncome - totalExpenses < 0">
+        {{ formatCurrency(totalIncome - totalExpenses) }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filtres -->
+<div class="card filter-card" style="margin-bottom: 24px;">
+  <div class="filters-grid">
+    <div class="form-group">
+      <label>Recherche</label>
+      <input type="text" [(ngModel)]="filterSearch" placeholder="Description..." (keyup.enter)="applyFilter()">
+    </div>
+    <div class="form-group">
+      <label>Type</label>
+      <select [(ngModel)]="filterType">
+        <option value="">Tous</option>
+        <option value="INCOME">Revenus</option>
+        <option value="EXPENSE">Dépenses</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Catégorie</label>
+      <select [(ngModel)]="filterCategory">
+        <option value="">Toutes</option>
+        <option *ngFor="let c of categories" [value]="c.id">{{ c.icon }} {{ c.name }}</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Date début</label>
+      <input type="date" [(ngModel)]="filterStartDate">
+    </div>
+    <div class="form-group">
+      <label>Date fin</label>
+      <input type="date" [(ngModel)]="filterEndDate">
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-primary" (click)="applyFilter()">🔍 Filtrer</button>
+      <button class="btn btn-outline" (click)="resetFilter()">✕ Réinitialiser</button>
+    </div>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div *ngIf="loading" class="empty-state">
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="!loading && transactions.length === 0" class="empty-state">
+    <div class="icon">📭</div>
+    <h3>Aucune transaction</h3>
+    <p>Ajoutez votre première transaction pour commencer</p>
+  </div>
+
+  <table *ngIf="!loading && transactions.length > 0">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Catégorie</th>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Montant</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let t of transactions">
+        <td>
+          <div class="td-main">{{ t.description }}</div>
+          <div class="td-sub" *ngIf="t.notes">{{ t.notes }}</div>
+        </td>
+        <td>
+          <span *ngIf="t.categoryName" class="category-chip" [style.background]="(t.categoryColor || '#6366f1') + '20'" [style.color]="t.categoryColor || '#6366f1'">
+            {{ t.categoryIcon }} {{ t.categoryName }}
+          </span>
+          <span *ngIf="!t.categoryName" class="text-muted">—</span>
+        </td>
+        <td>{{ formatDate(t.date) }}</td>
+        <td>
+          <span class="badge" [class.badge-income]="t.type === 'INCOME'" [class.badge-expense]="t.type === 'EXPENSE'">
+            {{ t.type === 'INCOME' ? 'Revenu' : 'Dépense' }}
+          </span>
+        </td>
+        <td>
+          <span [class.amount-income]="t.type === 'INCOME'" [class.amount-expense]="t.type === 'EXPENSE'">
+            {{ t.type === 'INCOME' ? '+' : '-' }}{{ formatCurrency(t.amount) }}
+          </span>
+        </td>
+        <td>
+          <div class="action-btns">
+            <button class="btn btn-outline btn-sm" (click)="openEdit(t)">✏️</button>
+            <button class="btn btn-danger btn-sm" (click)="confirmDelete(t.id!)">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h2>{{ editingTransaction ? 'Modifier la transaction' : 'Nouvelle transaction' }}</h2>
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div class="form-group">
+        <label>Description *</label>
+        <input type="text" [(ngModel)]="form.description" placeholder="Ex: Courses Carrefour">
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label>Montant (€) *</label>
+          <input type="number" [(ngModel)]="form.amount" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Date *</label>
+          <input type="date" [(ngModel)]="form.date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Type *</label>
+        <select [(ngModel)]="form.type" (change)="form.categoryId = undefined">
+          <option value="EXPENSE">💸 Dépense</option>
+          <option value="INCOME">💵 Revenu</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Catégorie</label>
+        <select [(ngModel)]="form.categoryId">
+          <option [ngValue]="undefined">— Aucune —</option>
+          <option *ngFor="let c of getCategoriesForType()" [ngValue]="c.id">{{ c.icon }} {{ c.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notes</label>
+        <textarea [(ngModel)]="form.notes" placeholder="Informations complémentaires..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" (click)="closeModal()">Annuler</button>
+      <button class="btn btn-primary" (click)="save()" [disabled]="!form.description || !form.amount">
+        {{ editingTransaction ? 'Enregistrer' : 'Créer' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmation suppression -->
+<div class="modal-overlay" *ngIf="deleteConfirmId !== null" (click)="cancelDelete()">
+  <div class="modal confirm-modal" (click)="$event.stopPropagation()">
+    <div class="confirm-icon">⚠️</div>
+    <h2>Supprimer cette transaction ?</h2>
+    <p>Cette action est irréversible.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" (click)="cancelDelete()">Annuler</button>
+      <button class="btn btn-danger" (click)="deleteTransaction()">Supprimer</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,78 @@
+<div *ngIf="loading" class="loading-state">
+  <div class="spinner"></div>
+  <p>Chargement du tableau de bord...</p>
+</div>
+
+<div *ngIf="!loading && dashboard">
+  <div class="page-header">
+    <div>
+      <h1>Tableau de bord</h1>
+      <p>Aperçu financier du mois en cours</p>
+    </div>
+    <a routerLink="/transactions" class="btn btn-primary">+ Nouvelle transaction</a>
+  </div>
+
+  <div class="grid-4" style="margin-bottom: 24px;">
+    <div class="card stat-card">
+      <div class="stat-icon">💵</div>
+      <div class="stat-label">Revenus du mois</div>
+      <div class="stat-value income">{{ formatCurrency(dashboard.totalIncome) }}</div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-icon">💸</div>
+      <div class="stat-label">Dépenses du mois</div>
+      <div class="stat-value expense">{{ formatCurrency(dashboard.totalExpenses) }}</div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-icon">💰</div>
+      <div class="stat-label">Solde</div>
+      <div class="stat-value" [class.income]="dashboard.balance >= 0" [class.expense]="dashboard.balance < 0">
+        {{ formatCurrency(dashboard.balance) }}
+      </div>
+    </div>
+    <div class="card stat-card">
+      <div class="stat-icon">📈</div>
+      <div class="stat-label">Taux d'épargne</div>
+      <div class="stat-value">{{ dashboard.savingsRate | number:'1.1-1' }}%</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom: 24px;">
+    <div class="card">
+      <h3 class="chart-title">Revenus vs Dépenses (6 derniers mois)</h3>
+      <canvas #barChart></canvas>
+    </div>
+    <div class="card">
+      <h3 class="chart-title">Dépenses par catégorie (mois en cours)</h3>
+      <div *ngIf="(dashboard.expensesByCategory | keyvalue).length === 0" class="empty-state">
+        <div class="icon">📭</div>
+        <p>Aucune dépense ce mois-ci</p>
+      </div>
+      <canvas #pieChart *ngIf="(dashboard.expensesByCategory | keyvalue).length > 0"></canvas>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 class="chart-title" style="margin-bottom: 0;">Transactions récentes</h3>
+      <a routerLink="/transactions" class="btn btn-outline btn-sm">Voir tout</a>
+    </div>
+    <div *ngIf="dashboard.recentTransactions.length === 0" class="empty-state" style="padding: 24px;">
+      <p>Aucune transaction</p>
+    </div>
+    <div class="recent-list" *ngIf="dashboard.recentTransactions.length > 0">
+      <div *ngFor="let t of dashboard.recentTransactions" class="recent-item">
+        <div class="recent-cat" [style.background]="t.categoryColor + '20'" [style.color]="t.categoryColor">
+          {{ t.category || '?' }}
+        </div>
+        <div class="recent-info">
+          <span class="recent-desc">{{ t.description }}</span>
+          <span class="recent-date">{{ formatDate(t.date) }}</span>
+        </div>
+        <div class="recent-amount" [class.income]="t.type === 'INCOME'" [class.expense]="t.type === 'EXPENSE'">
+          {{ t.type === 'INCOME' ? '+' : '-' }}{{ formatCurrency(t.amount) }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

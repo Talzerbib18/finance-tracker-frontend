@@ -1,0 +1,132 @@
+<div class="page-header">
+  <div>
+    <h1>Catégories</h1>
+    <p>Gérez vos catégories de transactions</p>
+  </div>
+  <button class="btn btn-primary" (click)="openCreate()">+ Nouvelle catégorie</button>
+</div>
+
+<div *ngIf="loading" class="empty-state"><div class="spinner"></div></div>
+
+<div *ngIf="!loading">
+
+  <!-- Revenus -->
+  <div style="margin-bottom: 24px;" *ngIf="incomeCategories.length > 0">
+    <h2 class="section-title">💵 Revenus</h2>
+    <div class="categories-grid">
+      <div class="card category-card" *ngFor="let c of incomeCategories">
+        <div class="cat-icon" [style.background]="c.color + '20'" [style.color]="c.color">{{ c.icon }}</div>
+        <div class="cat-info">
+          <div class="cat-name">{{ c.name }}</div>
+          <span class="badge badge-income">Revenu</span>
+        </div>
+        <div class="cat-actions">
+          <button class="btn btn-outline btn-sm" (click)="openEdit(c)">✏️</button>
+          <button class="btn btn-danger btn-sm" (click)="confirmDelete(c.id!)">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dépenses -->
+  <div style="margin-bottom: 24px;" *ngIf="expenseCategories.length > 0">
+    <h2 class="section-title">💸 Dépenses</h2>
+    <div class="categories-grid">
+      <div class="card category-card" *ngFor="let c of expenseCategories">
+        <div class="cat-icon" [style.background]="c.color + '20'" [style.color]="c.color">{{ c.icon }}</div>
+        <div class="cat-info">
+          <div class="cat-name">{{ c.name }}</div>
+          <span class="badge badge-expense">Dépense</span>
+        </div>
+        <div class="cat-actions">
+          <button class="btn btn-outline btn-sm" (click)="openEdit(c)">✏️</button>
+          <button class="btn btn-danger btn-sm" (click)="confirmDelete(c.id!)">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Les deux -->
+  <div style="margin-bottom: 24px;" *ngIf="bothCategories.length > 0">
+    <h2 class="section-title">🏦 Les deux</h2>
+    <div class="categories-grid">
+      <div class="card category-card" *ngFor="let c of bothCategories">
+        <div class="cat-icon" [style.background]="c.color + '20'" [style.color]="c.color">{{ c.icon }}</div>
+        <div class="cat-info">
+          <div class="cat-name">{{ c.name }}</div>
+          <span class="badge" style="background: #ede9fe; color: #5b21b6;">Les deux</span>
+        </div>
+        <div class="cat-actions">
+          <button class="btn btn-outline btn-sm" (click)="openEdit(c)">✏️</button>
+          <button class="btn btn-danger btn-sm" (click)="confirmDelete(c.id!)">🗑️</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="categories.length === 0" class="empty-state" style="padding: 64px;">
+    <div class="icon">🏷️</div>
+    <h3>Aucune catégorie</h3>
+    <p>Créez votre première catégorie</p>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <h2>{{ editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie' }}</h2>
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div class="form-group">
+        <label>Nom *</label>
+        <input type="text" [(ngModel)]="form.name" placeholder="Ex: Alimentation">
+      </div>
+      <div class="form-group">
+        <label>Type *</label>
+        <select [(ngModel)]="form.type">
+          <option value="EXPENSE">💸 Dépense</option>
+          <option value="INCOME">💵 Revenu</option>
+          <option value="BOTH">🔄 Les deux</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Couleur</label>
+        <div class="color-picker">
+          <span *ngFor="let col of colors" class="color-opt" [style.background]="col"
+                [class.selected]="form.color === col" (click)="form.color = col"></span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Icône</label>
+        <div class="icon-picker">
+          <span *ngFor="let ic of icons" class="icon-opt" [class.selected]="form.icon === ic"
+                [style.background]="form.icon === ic ? (form.color + '20') : ''" (click)="form.icon = ic">{{ ic }}</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Aperçu</label>
+        <div class="preview-chip" [style.background]="(form.color || '#6366f1') + '20'" [style.color]="form.color || '#6366f1'">
+          {{ form.icon }} {{ form.name || 'Nom de la catégorie' }}
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" (click)="closeModal()">Annuler</button>
+      <button class="btn btn-primary" (click)="save()" [disabled]="!form.name">
+        {{ editingCategory ? 'Enregistrer' : 'Créer' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Delete -->
+<div class="modal-overlay" *ngIf="deleteConfirmId !== null" (click)="cancelDelete()">
+  <div class="modal" style="max-width: 360px; text-align: center;" (click)="$event.stopPropagation()">
+    <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+    <h2>Supprimer cette catégorie ?</h2>
+    <p style="color: var(--text-muted); margin-bottom: 8px;">Les transactions liées ne seront pas supprimées.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" (click)="cancelDelete()">Annuler</button>
+      <button class="btn btn-danger" (click)="deleteCategory()">Supprimer</button>
+    </div>
+  </div>
+</div>
