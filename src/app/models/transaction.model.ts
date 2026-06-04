@@ -1,3 +1,10 @@
+export interface BudgetWarning {
+  categoryName: string;
+  limitAmount: number;
+  spentAmount: number;
+  exceededBy: number;
+}
+
 export interface Transaction {
   id?: number;
   description: string;
@@ -9,6 +16,9 @@ export interface Transaction {
   categoryColor?: string;
   categoryIcon?: string;
   notes?: string;
+  goalId?: number;
+  goalName?: string;
+  budgetWarning?: BudgetWarning;
 }
 
 export interface TransactionFilter {
@@ -19,4 +29,5 @@ export interface TransactionFilter {
   minAmount?: number;
   maxAmount?: number;
   search?: string;
+  goalId?: number;
 }

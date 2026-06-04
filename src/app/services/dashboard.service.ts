@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Dashboard } from '../models/dashboard.model';
 
@@ -9,7 +9,10 @@ export class DashboardService {
 
   constructor(private http: HttpClient) {}
 
-  getDashboard(): Observable<Dashboard> {
-    return this.http.get<Dashboard>(this.apiUrl);
+  getDashboard(startDate?: string, endDate?: string): Observable<Dashboard> {
+    let params = new HttpParams();
+    if (startDate) params = params.set('startDate', startDate);
+    if (endDate)   params = params.set('endDate', endDate);
+    return this.http.get<Dashboard>(this.apiUrl, { params });
   }
 }

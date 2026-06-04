@@ -6,73 +6,302 @@
 <div *ngIf="!loading && dashboard">
   <div class="page-header">
     <div>
-      <h1>Tableau de bord</h1>
-      <p>Aperçu financier du mois en cours</p>
+      <span class="card-kicker">{{ currentMonth }}</span>
+      <h1>Bonjour, voici votre aperçu</h1>
+      <p>Pilotez votre budget et gardez le cap sur vos objectifs.</p>
     </div>
-    <a routerLink="/transactions" class="btn btn-primary">+ Nouvelle transaction</a>
+    <div class="header-right">
+      <!-- Sélecteur de période -->
+      <div class="period-picker-wrap">
+        <button class="period-btn" (click)="$event.stopPropagation(); showPeriodPicker = !showPeriodPicker">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          {{ periodLabel }}
+          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+
+        <div class="period-dropdown" *ngIf="showPeriodPicker" (click)="$event.stopPropagation()">
+          <!-- Presets -->
+          <div class="period-presets">
+            <button class="period-preset" [class.active]="selectedPreset === 'month'"      (click)="applyPreset('month')">Ce mois</button>
+            <button class="period-preset" [class.active]="selectedPreset === 'last-month'" (click)="applyPreset('last-month')">Mois dernier</button>
+            <button class="period-preset" [class.active]="selectedPreset === '7days'"      (click)="applyPreset('7days')">7 derniers jours</button>
+          </div>
+
+          <div class="period-divider"></div>
+
+          <!-- Sélection personnalisée -->
+          <div class="period-custom">
+            <p class="period-custom-label">Période personnalisée</p>
+            <div class="period-inputs">
+              <div class="period-input-wrap">
+                <label>Du</label>
+                <input type="date" [(ngModel)]="customStart" [max]="customEnd || undefined">
+              </div>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-light);flex-shrink:0"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              <div class="period-input-wrap">
+                <label>Au</label>
+                <input type="date" [(ngModel)]="customEnd" [min]="customStart || undefined">
+              </div>
+            </div>
+            <button class="period-apply" (click)="applyCustom()" [disabled]="!customStart || !customEnd">
+              Appliquer
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <a routerLink="/transactions" class="btn btn-primary"><span class="btn-plus">+</span> Nouvelle transaction</a>
+    </div>
   </div>
 
-  <div class="grid-4" style="margin-bottom: 24px;">
-    <div class="card stat-card">
-      <div class="stat-icon">💵</div>
-      <div class="stat-label">Revenus du mois</div>
+  <section class="hero-grid">
+    <div class="balance-hero">
+      <div class="hero-topline">
+        <span class="hero-label">Solde disponible</span>
+        <span class="hero-pill">{{ dashboard.balance >= 0 ? 'Budget positif' : 'À surveiller' }}</span>
+      </div>
+      <strong class="hero-balance">{{ formatCurrency(dashboard.balance) }}</strong>
+      <p>Votre résultat pour le mois en cours après déduction des dépenses.</p>
+      <div class="hero-footer">
+        <div>
+          <span>Revenus</span>
+          <strong>+ {{ formatCurrency(dashboard.totalIncome) }}</strong>
+        </div>
+        <div>
+          <span>Dépenses</span>
+          <strong>- {{ formatCurrency(dashboard.totalExpenses) }}</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="card savings-card">
+      <div class="savings-topline">
+        <div>
+          <span class="card-kicker">Épargne mensuelle</span>
+          <strong>{{ positiveSavingsRate | number:'1.1-1' }}%</strong>
+        </div>
+        <div class="savings-icon">↗</div>
+      </div>
+      <p>{{ savingsMessage }}</p>
+      <div class="progress-bar">
+        <div class="fill" [style.width.%]="positiveSavingsRate"></div>
+      </div>
+      <span class="progress-caption">Objectif conseillé : 20% des revenus</span>
+    </div>
+  </section>
+
+  <section class="quick-actions">
+    <a routerLink="/transactions">
+      <span class="quick-icon blue">+</span>
+      <span><strong>Ajouter une opération</strong><small>Revenu ou dépense</small></span>
+    </a>
+    <a routerLink="/goals">
+      <span class="quick-icon violet">◎</span>
+      <span><strong>Gérer mes objectifs</strong><small>Suivre mon épargne</small></span>
+    </a>
+    <a routerLink="/categories">
+      <span class="quick-icon orange">#</span>
+      <span><strong>Organiser mes catégories</strong><small>Personnaliser le suivi</small></span>
+    </a>
+  </section>
+
+  <div class="grid-4 stats-grid">
+    <div class="card stat-card income-stat">
+      <div class="stat-topline"><span class="stat-icon">+</span><small>Ce mois-ci</small></div>
+      <div class="stat-label">Revenus</div>
       <div class="stat-value income">{{ formatCurrency(dashboard.totalIncome) }}</div>
     </div>
-    <div class="card stat-card">
-      <div class="stat-icon">💸</div>
-      <div class="stat-label">Dépenses du mois</div>
+    <div class="card stat-card expense-stat">
+      <div class="stat-topline"><span class="stat-icon">−</span><small>{{ expenseRatio | number:'1.0-0' }}% des revenus</small></div>
+      <div class="stat-label">Dépenses</div>
       <div class="stat-value expense">{{ formatCurrency(dashboard.totalExpenses) }}</div>
     </div>
-    <div class="card stat-card">
-      <div class="stat-icon">💰</div>
-      <div class="stat-label">Solde</div>
+    <div class="card stat-card balance-stat">
+      <div class="stat-topline"><span class="stat-icon">=</span><small>Après dépenses</small></div>
+      <div class="stat-label">Solde net</div>
       <div class="stat-value" [class.income]="dashboard.balance >= 0" [class.expense]="dashboard.balance < 0">
         {{ formatCurrency(dashboard.balance) }}
       </div>
     </div>
-    <div class="card stat-card">
-      <div class="stat-icon">📈</div>
+    <div class="card stat-card savings-stat">
+      <div class="stat-topline"><span class="stat-icon">%</span><small>Cap recommandé : 20%</small></div>
       <div class="stat-label">Taux d'épargne</div>
       <div class="stat-value">{{ dashboard.savingsRate | number:'1.1-1' }}%</div>
     </div>
   </div>
 
-  <div class="grid-2" style="margin-bottom: 24px;">
-    <div class="card">
-      <h3 class="chart-title">Revenus vs Dépenses (6 derniers mois)</h3>
-      <canvas #barChart></canvas>
+  <section class="analytics-grid">
+    <div class="card chart-card evolution-card">
+      <div class="section-header">
+        <div>
+          <span class="card-kicker">Analyse</span>
+          <h3 class="chart-title">Évolution — {{ chartEvolutionTitle }}</h3>
+        </div>
+        <span class="section-chip">Revenus vs dépenses</span>
+      </div>
+      <div class="chart-wrap bar-chart-wrap" *ngIf="filteredMonthlyData.length > 0">
+        <canvas #barChart></canvas>
+      </div>
+      <div class="empty-state compact" *ngIf="filteredMonthlyData.length === 0">
+        <div class="icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+        <p>Aucune donnée pour cette période</p>
+      </div>
     </div>
-    <div class="card">
-      <h3 class="chart-title">Dépenses par catégorie (mois en cours)</h3>
-      <div *ngIf="(dashboard.expensesByCategory | keyvalue).length === 0" class="empty-state">
-        <div class="icon">📭</div>
+
+    <div class="card chart-card category-card">
+      <div class="section-header">
+        <div>
+          <span class="card-kicker">Répartition</span>
+          <h3 class="chart-title">Dépenses par catégorie</h3>
+        </div>
+      </div>
+      <div *ngIf="categoryExpenses.length === 0" class="empty-state compact">
+        <div class="icon">◎</div>
         <p>Aucune dépense ce mois-ci</p>
       </div>
-      <canvas #pieChart *ngIf="(dashboard.expensesByCategory | keyvalue).length > 0"></canvas>
+      <div class="category-content" *ngIf="categoryExpenses.length > 0">
+        <div class="chart-wrap doughnut-wrap"><canvas #pieChart></canvas></div>
+        <div class="category-list">
+          <div class="category-row" *ngFor="let item of categoryExpenses.slice(0, 4)">
+            <span class="category-dot" [style.background]="item.color"></span>
+            <span>{{ item.name }}</span>
+            <strong>{{ formatCurrency(item.amount) }}</strong>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h3 class="chart-title" style="margin-bottom: 0;">Transactions récentes</h3>
-      <a routerLink="/transactions" class="btn btn-outline btn-sm">Voir tout</a>
+  <div class="card recent-card">
+    <div class="section-header">
+      <div>
+        <span class="card-kicker">Activité</span>
+        <h3 class="chart-title">Transactions récentes</h3>
+      </div>
+      <a routerLink="/transactions" class="btn btn-outline btn-sm">Voir tout →</a>
     </div>
-    <div *ngIf="dashboard.recentTransactions.length === 0" class="empty-state" style="padding: 24px;">
-      <p>Aucune transaction</p>
+    <div *ngIf="dashboard.recentTransactions.length === 0" class="empty-state compact">
+      <p>Aucune transaction pour le moment.</p>
     </div>
     <div class="recent-list" *ngIf="dashboard.recentTransactions.length > 0">
       <div *ngFor="let t of dashboard.recentTransactions" class="recent-item">
-        <div class="recent-cat" [style.background]="t.categoryColor + '20'" [style.color]="t.categoryColor">
-          {{ t.category || '?' }}
+        <div class="recent-cat" [style.background]="(t.categoryColor || '#6366f1') + '20'" [style.color]="t.categoryColor || '#6366f1'">
+          <span *ngIf="t.categoryIcon">{{ t.categoryIcon }}</span>
+          <span *ngIf="!t.categoryIcon" class="cat-initial">{{ (t.category || '?')[0].toUpperCase() }}</span>
         </div>
         <div class="recent-info">
           <span class="recent-desc">{{ t.description }}</span>
-          <span class="recent-date">{{ formatDate(t.date) }}</span>
+          <span class="recent-date">{{ formatDate(t.date) }} · {{ t.category || 'Sans catégorie' }}</span>
         </div>
+        <span class="transaction-badge" [class.income]="t.type === 'INCOME'">
+          {{ t.type === 'INCOME' ? 'Revenu' : 'Dépense' }}
+        </span>
         <div class="recent-amount" [class.income]="t.type === 'INCOME'" [class.expense]="t.type === 'EXPENSE'">
           {{ t.type === 'INCOME' ? '+' : '-' }}{{ formatCurrency(t.amount) }}
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ===== BUDGETS DU MOIS ===== -->
+  <div class="budgets-section">
+    <div class="budgets-header">
+      <div>
+        <span class="card-kicker">Suivi</span>
+        <h3 class="budgets-title">Budgets du mois</h3>
+      </div>
+      <button class="btn btn-outline btn-sm" (click)="openAddBudget()">
+        <span class="btn-plus">+</span> Nouveau budget
+      </button>
+    </div>
+
+    <!-- Vide -->
+    <div class="budgets-empty" *ngIf="budgets.length === 0">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <p>Aucun budget défini pour ce mois.</p>
+      <button class="btn btn-primary btn-sm" (click)="openAddBudget()"><span class="btn-plus">+</span> Créer un budget</button>
+    </div>
+
+    <!-- Cards budgets -->
+    <div class="budgets-grid" *ngIf="budgets.length > 0">
+      <div class="budget-card" *ngFor="let b of budgets" [class]="'budget-' + b.status">
+        <div class="budget-card-header">
+          <div class="budget-cat-icon" [style.background]="(b.categoryColor || '#6366f1') + '22'" [style.color]="b.categoryColor || '#6366f1'">
+            {{ b.categoryIcon || (b.categoryName || '?')[0] }}
+          </div>
+          <div class="budget-cat-info">
+            <div class="budget-cat-name">{{ b.categoryName || 'Catégorie' }}</div>
+            <div class="budget-amounts">
+              <span class="budget-spent" [class.over]="b.status === 'exceeded'">{{ formatCurrency(b.spentAmount) }}</span>
+              <span class="budget-sep">/</span>
+              <span class="budget-limit">{{ formatCurrency(b.limitAmount) }}</span>
+            </div>
+          </div>
+          <div class="budget-actions">
+            <button class="btn-icon" (click)="openEditBudget(b)">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+            </button>
+            <button class="btn-icon btn-icon--danger" (click)="confirmDeleteBudget(b.id!)">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Barre de progression -->
+        <div class="budget-bar-wrap">
+          <div class="budget-bar-fill" [style.width.%]="b.usagePercent" [class]="'fill-' + b.status"></div>
+        </div>
+
+        <!-- Footer -->
+        <div class="budget-footer">
+          <span class="budget-pct" [class]="'pct-' + b.status">{{ b.usagePercent | number:'1.0-0' }}%</span>
+          <span class="budget-remaining" *ngIf="b.status !== 'exceeded'">
+            {{ formatCurrency(b.remaining) }} restants
+          </span>
+          <span class="budget-over" *ngIf="b.status === 'exceeded'">
+            Dépassé de {{ formatCurrency(b.spentAmount - b.limitAmount) }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL BUDGET ===== -->
+<div class="modal-overlay" *ngIf="showBudgetModal" (click)="closeBudgetModal()">
+  <div class="modal" style="max-width: 420px;" (click)="$event.stopPropagation()">
+    <h2>{{ editingBudget ? 'Modifier le budget' : 'Nouveau budget' }}</h2>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="form-group">
+        <label>Catégorie *</label>
+        <select [(ngModel)]="budgetForm.categoryId" (ngModelChange)="onBudgetCategoryChange($event)">
+          <option [ngValue]="undefined">— Choisir —</option>
+          <option *ngFor="let c of categories" [ngValue]="c.id">{{ c.icon }} {{ c.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Plafond mensuel (€) *</label>
+        <input type="number" [(ngModel)]="budgetForm.limitAmount" min="1" step="1" placeholder="Ex: 400">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" (click)="closeBudgetModal()">Annuler</button>
+      <button class="btn btn-primary" (click)="saveBudget()" [disabled]="!budgetForm.categoryId || !budgetForm.limitAmount">
+        {{ editingBudget ? 'Enregistrer' : 'Créer' }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CONFIRM DELETE BUDGET ===== -->
+<div class="modal-overlay" *ngIf="deleteBudgetId !== null" (click)="cancelDeleteBudget()">
+  <div class="modal" style="max-width:360px;text-align:center;" (click)="$event.stopPropagation()">
+    <div class="confirm-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+    <h2>Supprimer ce budget ?</h2>
+    <p style="color:var(--text-muted);margin-bottom:8px;">Le suivi de dépenses sera désactivé pour cette catégorie.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" (click)="cancelDeleteBudget()">Annuler</button>
+      <button class="btn btn-danger" (click)="deleteBudget()">Supprimer</button>
     </div>
   </div>
 </div>

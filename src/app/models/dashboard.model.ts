@@ -21,4 +21,5 @@ export interface RecentTransaction {
   date: string;
   category: string;
   categoryColor: string;
+  categoryIcon?: string;
 }

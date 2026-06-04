@@ -19,6 +19,7 @@ export class TransactionService {
       if (filter.minAmount != null) params = params.set('minAmount', filter.minAmount.toString());
       if (filter.maxAmount != null) params = params.set('maxAmount', filter.maxAmount.toString());
       if (filter.search) params = params.set('search', filter.search);
+      if (filter.goalId != null) params = params.set('goalId', filter.goalId.toString());
     }
     return this.http.get<Transaction[]>(this.apiUrl, { params });
   }

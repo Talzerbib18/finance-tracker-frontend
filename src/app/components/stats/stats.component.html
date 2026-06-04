@@ -1,0 +1,126 @@
+<div class="page-header">
+  <div>
+    <h1>Statistiques</h1>
+    <p>Analysez vos habitudes financières</p>
+  </div>
+</div>
+
+<!-- Spinner -->
+<div class="empty-state" *ngIf="loading">
+  <div class="spinner"></div>
+</div>
+
+<ng-container *ngIf="!loading">
+
+  <!-- KPI Cards -->
+  <div class="grid-4" style="margin-bottom: 24px;">
+    <div class="card kpi-card">
+      <div class="kpi-icon kpi-blue">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="kpi-label">Transactions</div>
+      <div class="kpi-value">{{ totalTransactions }}</div>
+      <div class="kpi-sub">au total</div>
+    </div>
+    <div class="card kpi-card">
+      <div class="kpi-icon kpi-red">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+      </div>
+      <div class="kpi-label">Dépense moy./mois</div>
+      <div class="kpi-value">{{ formatCurrency(avgMonthlyExpense) }}</div>
+      <div class="kpi-sub">sur {{ monthlyStats.length }} mois</div>
+    </div>
+    <div class="card kpi-card" *ngIf="mostExpensiveMonth">
+      <div class="kpi-icon kpi-orange">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <div class="kpi-label">Mois le + dépensier</div>
+      <div class="kpi-value kpi-sm">{{ mostExpensiveMonth.label }}</div>
+      <div class="kpi-sub">{{ formatCurrency(mostExpensiveMonth.expenses) }}</div>
+    </div>
+    <div class="card kpi-card" *ngIf="bestMonth">
+      <div class="kpi-icon kpi-green">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </div>
+      <div class="kpi-label">Meilleur mois</div>
+      <div class="kpi-value kpi-sm">{{ bestMonth.label }}</div>
+      <div class="kpi-sub">solde +{{ formatCurrency(bestMonth.net) }}</div>
+    </div>
+  </div>
+
+  <!-- Évolution sur 12 mois -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="section-header" style="margin-bottom: 20px;">
+      <div>
+        <span class="card-kicker-blue">Tendance</span>
+        <h3 class="section-title-lg">Évolution sur 12 mois</h3>
+      </div>
+    </div>
+    <div class="chart-area-lg">
+      <canvas #netChart></canvas>
+    </div>
+    <div class="empty-state compact" *ngIf="monthlyStats.length === 0">
+      <p>Pas assez de données</p>
+    </div>
+  </div>
+
+  <!-- Top catégories -->
+  <div class="grid-1" style="margin-bottom: 40px;">
+    <div class="card">
+      <div style="margin-bottom: 20px;">
+        <span class="card-kicker-blue">Répartition</span>
+        <h3 class="section-title-lg">Top catégories</h3>
+        <p class="section-sub">Par montant total dépensé</p>
+      </div>
+      <div class="top-categories" *ngIf="topCategories.length > 0">
+        <div class="cat-stat-row" *ngFor="let c of topCategories; let i = index">
+          <div class="cat-stat-rank">{{ i + 1 }}</div>
+          <div class="cat-stat-icon" [style.background]="c.color + '22'" [style.color]="c.color">
+            {{ c.icon || c.name[0] }}
+          </div>
+          <div class="cat-stat-info">
+            <div class="cat-stat-name">{{ c.name }}</div>
+            <div class="cat-stat-bar-wrap">
+              <div class="cat-stat-bar" [style.width.%]="(c.amount / maxCategoryAmount) * 100" [style.background]="c.color"></div>
+            </div>
+          </div>
+          <div class="cat-stat-right">
+            <div class="cat-stat-amount">{{ formatCurrency(c.amount) }}</div>
+            <div class="cat-stat-count">{{ c.count }} op.</div>
+          </div>
+        </div>
+      </div>
+      <div class="empty-state compact" *ngIf="topCategories.length === 0">
+        <p>Aucune catégorie trouvée</p>
+      </div>
+    </div>
+
+  <!-- Résumé revenus vs dépenses -->
+  <div class="card summary-compare" style="margin-top: 40px;">
+    <div class="compare-col">
+      <div class="compare-label income-label">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+        Total revenus
+      </div>
+      <div class="compare-value income-value">{{ formatCurrency(totalIncome) }}</div>
+    </div>
+    <div class="compare-divider"></div>
+    <div class="compare-col">
+      <div class="compare-label expense-label">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+        Total dépenses
+      </div>
+      <div class="compare-value expense-value">{{ formatCurrency(totalExpenses) }}</div>
+    </div>
+    <div class="compare-divider"></div>
+    <div class="compare-col">
+      <div class="compare-label">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/></svg>
+        Solde global
+      </div>
+      <div class="compare-value" [class.income-value]="totalIncome - totalExpenses >= 0" [class.expense-value]="totalIncome - totalExpenses < 0">
+        {{ formatCurrency(totalIncome - totalExpenses) }}
+      </div>
+    </div>
+  </div>
+

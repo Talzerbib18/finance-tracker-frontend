@@ -25,6 +25,14 @@ export class GoalService {
     return this.http.post<SavingsGoal>(`${this.apiUrl}/${id}/contribute`, { amount });
   }
 
+  abandon(id: number): Observable<SavingsGoal> {
+    return this.http.post<SavingsGoal>(`${this.apiUrl}/${id}/abandon`, {});
+  }
+
+  reactivate(id: number): Observable<SavingsGoal> {
+    return this.http.post<SavingsGoal>(`${this.apiUrl}/${id}/reactivate`, {});
+  }
+
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }

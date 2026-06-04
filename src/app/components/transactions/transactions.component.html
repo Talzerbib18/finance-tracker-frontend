@@ -1,73 +1,152 @@
+<!-- Alertes dépassement budget -->
+<div *ngIf="budgetWarnings.length > 0" class="budget-warnings-list">
+  <div class="budget-warnings-header">
+    <span>⚠️ {{ budgetWarnings.length }} transaction{{ budgetWarnings.length > 1 ? 's' : '' }} bloquée{{ budgetWarnings.length > 1 ? 's' : '' }} — budget dépassé</span>
+    <button class="budget-warning-close" (click)="budgetWarnings = []">✕ Fermer tout</button>
+  </div>
+  <div *ngFor="let w of budgetWarnings; let i = index" class="budget-warning-item">
+    <span class="budget-warning-item-text">{{ w }}</span>
+    <button class="budget-warning-item-close" (click)="budgetWarnings.splice(i, 1)">✕</button>
+  </div>
+</div>
+
 <div class="page-header">
   <div>
     <h1>Transactions</h1>
     <p>Gérez vos revenus et dépenses</p>
   </div>
-  <button class="btn btn-primary" (click)="openCreate()">+ Ajouter</button>
+  <div class="header-actions">
+    <!-- Import Excel -->
+    <button class="btn btn-outline" (click)="openImportModal()">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Importer Excel
+    </button>
+    <!-- Export Excel -->
+    <button class="btn btn-outline" (click)="exportExcel()" [disabled]="transactions.length === 0">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Exporter Excel
+    </button>
+    <button class="btn btn-primary" (click)="openCreate()"><span class="btn-plus">+</span> Ajouter</button>
+  </div>
 </div>
 
 <!-- Résumé -->
 <div class="grid-3" style="margin-bottom: 24px;">
   <div class="card summary-card income-card">
-    <div class="summary-icon">💵</div>
+    <div class="summary-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div>
     <div>
       <div class="summary-label">Total Revenus</div>
       <div class="summary-value">{{ formatCurrency(totalIncome) }}</div>
     </div>
   </div>
   <div class="card summary-card expense-card">
-    <div class="summary-icon">💸</div>
+    <div class="summary-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
     <div>
       <div class="summary-label">Total Dépenses</div>
       <div class="summary-value">{{ formatCurrency(totalExpenses) }}</div>
     </div>
   </div>
-  <div class="card summary-card">
-    <div class="summary-icon">⚖️</div>
+  <div class="card summary-card balance-card">
+    <div class="summary-icon">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="9" x2="19" y2="9"/><line x1="5" y1="15" x2="19" y2="15"/></svg>
+    </div>
     <div>
-      <div class="summary-label">{{ transactions.length }} transaction(s)</div>
+      <div class="summary-label">Solde net</div>
       <div class="summary-value" [class.positive]="totalIncome - totalExpenses >= 0" [class.negative]="totalIncome - totalExpenses < 0">
         {{ formatCurrency(totalIncome - totalExpenses) }}
       </div>
+      <div class="summary-count">{{ transactions.length }} transaction{{ transactions.length > 1 ? 's' : '' }}</div>
     </div>
   </div>
 </div>
 
 <!-- Filtres -->
-<div class="card filter-card" style="margin-bottom: 24px;">
-  <div class="filters-grid">
-    <div class="form-group">
-      <label>Recherche</label>
-      <input type="text" [(ngModel)]="filterSearch" placeholder="Description..." (keyup.enter)="applyFilter()">
+<div class="filter-card" style="margin-bottom: 16px;">
+
+  <!-- Header -->
+  <div class="filter-header">
+    <div class="filter-title">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+      Filtres
+      <span class="filter-count" *ngIf="activeFilters.length > 0">{{ activeFilters.length }}</span>
     </div>
-    <div class="form-group">
-      <label>Type</label>
-      <select [(ngModel)]="filterType">
-        <option value="">Tous</option>
-        <option value="INCOME">Revenus</option>
-        <option value="EXPENSE">Dépenses</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Catégorie</label>
-      <select [(ngModel)]="filterCategory">
-        <option value="">Toutes</option>
-        <option *ngFor="let c of categories" [value]="c.id">{{ c.icon }} {{ c.name }}</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Date début</label>
-      <input type="date" [(ngModel)]="filterStartDate">
-    </div>
-    <div class="form-group">
-      <label>Date fin</label>
-      <input type="date" [(ngModel)]="filterEndDate">
-    </div>
-    <div class="filter-actions">
-      <button class="btn btn-primary" (click)="applyFilter()">🔍 Filtrer</button>
-      <button class="btn btn-outline" (click)="resetFilter()">✕ Réinitialiser</button>
-    </div>
+    <button class="filter-reset-link" (click)="resetFilter()" *ngIf="activeFilters.length > 0">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      Tout effacer
+    </button>
   </div>
+
+  <!-- Recherche pleine largeur -->
+  <div class="filter-search-wrap">
+    <svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" [(ngModel)]="filterSearch" placeholder="Rechercher par description ou notes…" (input)="onSearchInput()" (keyup.enter)="applyFilter()">
+  </div>
+
+  <!-- Filtres secondaires -->
+  <div class="filter-groups">
+
+    <div class="filter-group">
+      <span class="filter-group-label">Type</span>
+      <div class="fi">
+        <select [(ngModel)]="filterType" (ngModelChange)="applyFilter()">
+          <option value="">Tous</option>
+          <option value="INCOME">Revenu</option>
+          <option value="EXPENSE">Dépense</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-group-label">Catégorie</span>
+      <div class="fi">
+        <select [(ngModel)]="filterCategory" (ngModelChange)="applyFilter()">
+          <option value="">Toutes</option>
+          <option *ngFor="let c of categories" [value]="c.id">{{ c.icon }} {{ c.name }}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-group-label">Période</span>
+      <div class="fi-range">
+        <div class="fi fi-date">
+          <svg class="fi-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <input type="date" [(ngModel)]="filterStartDate" (change)="applyFilter()">
+        </div>
+        <span class="fi-sep">→</span>
+        <div class="fi fi-date">
+          <input type="date" [(ngModel)]="filterEndDate" (change)="applyFilter()">
+        </div>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <span class="filter-group-label">Montant (€)</span>
+      <div class="fi-range">
+        <div class="fi fi-amount">
+          <span class="fi-prefix">€</span>
+          <input type="number" [(ngModel)]="filterMinAmount" placeholder="Min" min="0" step="0.01" (change)="applyFilter()">
+        </div>
+        <span class="fi-sep">—</span>
+        <div class="fi fi-amount">
+          <span class="fi-prefix">€</span>
+          <input type="number" [(ngModel)]="filterMaxAmount" placeholder="Max" min="0" step="0.01" (change)="applyFilter()">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Filtres actifs -->
+<div class="active-filters" *ngIf="activeFilters.length > 0">
+  <span class="filter-tag" *ngFor="let f of activeFilters">
+    {{ f.label }}
+    <button class="filter-tag-remove" (click)="removeFilter(f.key)">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </span>
+  <button class="filter-clear-all" (click)="resetFilter()">Tout effacer</button>
 </div>
 
 <!-- Table -->
@@ -77,54 +156,85 @@
   </div>
 
   <div *ngIf="!loading && transactions.length === 0" class="empty-state">
-    <div class="icon">📭</div>
+    <div class="icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></div>
     <h3>Aucune transaction</h3>
     <p>Ajoutez votre première transaction pour commencer</p>
   </div>
 
-  <table *ngIf="!loading && transactions.length > 0">
-    <thead>
-      <tr>
-        <th>Description</th>
-        <th>Catégorie</th>
-        <th>Date</th>
-        <th>Type</th>
-        <th>Montant</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let t of transactions">
-        <td>
-          <div class="td-main">{{ t.description }}</div>
-          <div class="td-sub" *ngIf="t.notes">{{ t.notes }}</div>
-        </td>
-        <td>
-          <span *ngIf="t.categoryName" class="category-chip" [style.background]="(t.categoryColor || '#6366f1') + '20'" [style.color]="t.categoryColor || '#6366f1'">
-            {{ t.categoryIcon }} {{ t.categoryName }}
-          </span>
-          <span *ngIf="!t.categoryName" class="text-muted">—</span>
-        </td>
-        <td>{{ formatDate(t.date) }}</td>
-        <td>
-          <span class="badge" [class.badge-income]="t.type === 'INCOME'" [class.badge-expense]="t.type === 'EXPENSE'">
-            {{ t.type === 'INCOME' ? 'Revenu' : 'Dépense' }}
-          </span>
-        </td>
-        <td>
-          <span [class.amount-income]="t.type === 'INCOME'" [class.amount-expense]="t.type === 'EXPENSE'">
-            {{ t.type === 'INCOME' ? '+' : '-' }}{{ formatCurrency(t.amount) }}
-          </span>
-        </td>
-        <td>
-          <div class="action-btns">
-            <button class="btn btn-outline btn-sm" (click)="openEdit(t)">✏️</button>
-            <button class="btn btn-danger btn-sm" (click)="confirmDelete(t.id!)">🗑️</button>
-          </div>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="table-scroll">
+    <table *ngIf="!loading && transactions.length > 0">
+      <thead>
+        <tr>
+          <th class="sortable" (click)="sort('description')">
+            Description
+            <span class="sort-icon" [class.active]="sortBy === 'description'">{{ sortBy === 'description' && sortDir === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th>Catégorie</th>
+          <th class="sortable" (click)="sort('date')">
+            Date
+            <span class="sort-icon" [class.active]="sortBy === 'date'">{{ sortBy === 'date' && sortDir === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th>Type</th>
+          <th class="sortable" (click)="sort('amount')">
+            Montant
+            <span class="sort-icon" [class.active]="sortBy === 'amount'">{{ sortBy === 'amount' && sortDir === 'asc' ? '↑' : '↓' }}</span>
+          </th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let t of pagedTransactions">
+          <td>
+            <div class="td-main">{{ t.description }}</div>
+            <div class="td-sub" *ngIf="t.notes">{{ t.notes }}</div>
+          </td>
+          <td>
+            <span *ngIf="t.categoryName" class="category-chip" [style.background]="(t.categoryColor || '#6366f1') + '20'" [style.color]="t.categoryColor || '#6366f1'">
+              {{ t.categoryIcon }} {{ t.categoryName }}
+            </span>
+            <span *ngIf="!t.categoryName" class="text-muted">—</span>
+          </td>
+          <td>{{ formatDate(t.date) }}</td>
+          <td>
+            <span class="badge" [class.badge-income]="t.type === 'INCOME'" [class.badge-expense]="t.type === 'EXPENSE'">
+              {{ t.type === 'INCOME' ? 'Revenu' : 'Dépense' }}
+            </span>
+          </td>
+          <td>
+            <span [class.amount-income]="t.type === 'INCOME'" [class.amount-expense]="t.type === 'EXPENSE'">
+              {{ t.type === 'INCOME' ? '+' : '-' }}{{ formatCurrency(t.amount) }}
+            </span>
+          </td>
+          <td>
+            <div class="action-btns">
+              <button class="btn-icon" title="Dupliquer" (click)="duplicate(t)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              <button class="btn-icon" title="Modifier" (click)="openEdit(t)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg></button>
+              <button class="btn-icon btn-icon--danger" title="Supprimer" (click)="confirmDelete(t.id!)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Pagination -->
+<div class="pagination" *ngIf="totalPages > 1">
+  <span class="pagination-info">
+    {{ (currentPage - 1) * pageSize + 1 }}–{{ minVal(currentPage * pageSize, transactions.length) }} sur {{ transactions.length }}
+  </span>
+  <div class="pagination-controls">
+    <button class="page-btn" (click)="goToPage(currentPage - 1)" [disabled]="currentPage === 1">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <ng-container *ngFor="let p of pageNumbers">
+      <span *ngIf="p === -1" class="page-ellipsis">…</span>
+      <button *ngIf="p !== -1" class="page-btn" [class.active]="p === currentPage" (click)="goToPage(p)">{{ p }}</button>
+    </ng-container>
+    <button class="page-btn" (click)="goToPage(currentPage + 1)" [disabled]="currentPage === totalPages">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
 </div>
 
 <!-- Modal Create/Edit -->
@@ -136,28 +246,39 @@
         <label>Description *</label>
         <input type="text" [(ngModel)]="form.description" placeholder="Ex: Courses Carrefour">
       </div>
-      <div class="grid-2">
+      <div class="grid-3">
         <div class="form-group">
           <label>Montant (€) *</label>
-          <input type="number" [(ngModel)]="form.amount" min="0" step="0.01">
+          <input type="number" [(ngModel)]="form.amount" min="0" step="0.01" (ngModelChange)="checkBudget()">
         </div>
         <div class="form-group">
           <label>Date *</label>
           <input type="date" [(ngModel)]="form.date">
         </div>
+        <div class="form-group">
+          <label>Heure</label>
+          <input type="time" [(ngModel)]="formTime">
+        </div>
       </div>
       <div class="form-group">
         <label>Type *</label>
-        <select [(ngModel)]="form.type" (change)="form.categoryId = undefined">
-          <option value="EXPENSE">💸 Dépense</option>
-          <option value="INCOME">💵 Revenu</option>
+        <select [(ngModel)]="form.type" (change)="form.categoryId = undefined; formBudgetError = null">
+          <option value="EXPENSE">Dépense</option>
+          <option value="INCOME">Revenu</option>
         </select>
       </div>
       <div class="form-group">
         <label>Catégorie</label>
-        <select [(ngModel)]="form.categoryId">
+        <select [(ngModel)]="form.categoryId" (ngModelChange)="checkBudget()">
           <option [ngValue]="undefined">— Aucune —</option>
           <option *ngFor="let c of getCategoriesForType()" [ngValue]="c.id">{{ c.icon }} {{ c.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Objectif lié</label>
+        <select [(ngModel)]="form.goalId">
+          <option [ngValue]="undefined">— Aucun —</option>
+          <option *ngFor="let g of goals" [ngValue]="g.id">{{ g.icon || '🎯' }} {{ g.name }}</option>
         </select>
       </div>
       <div class="form-group">
@@ -165,19 +286,111 @@
         <textarea [(ngModel)]="form.notes" placeholder="Informations complémentaires..."></textarea>
       </div>
     </div>
+    <!-- Erreur budget -->
+    <div class="budget-error" *ngIf="formBudgetError">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div class="budget-error-body">
+        <strong>Budget dépassé</strong>
+        <p>{{ formBudgetError }}</p>
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-outline" (click)="closeModal()">Annuler</button>
-      <button class="btn btn-primary" (click)="save()" [disabled]="!form.description || !form.amount">
+      <button class="btn btn-primary" (click)="save()"
+              [disabled]="!form.description || !form.amount || !!formBudgetError">
         {{ editingTransaction ? 'Enregistrer' : 'Créer' }}
       </button>
     </div>
   </div>
 </div>
 
+<!-- ===== MODAL IMPORT EXCEL ===== -->
+<div class="modal-overlay" *ngIf="showImportModal" (click)="closeImportModal()">
+  <div class="modal import-modal" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="import-header">
+      <div>
+        <h2>Importer des transactions</h2>
+        <p class="import-subtitle">Fichier Excel (.xlsx) avec les colonnes : Date, Description, Type, Montant, Catégorie, Notes</p>
+      </div>
+      <button class="btn-icon" (click)="closeImportModal()">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Actions : télécharger template + sélectionner fichier -->
+    <div class="import-actions" *ngIf="!importDone">
+      <button class="btn btn-outline btn-sm" (click)="downloadTemplate()">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Télécharger le modèle
+      </button>
+
+      <label class="import-file-btn">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Choisir un fichier Excel
+        <input type="file" accept=".xlsx,.xls" (change)="onFileSelected($event)" hidden>
+      </label>
+    </div>
+
+    <!-- Aperçu des lignes parsées -->
+    <div class="import-preview" *ngIf="importRows.length > 0 && !importDone">
+      <div class="import-summary-bar">
+        <span class="import-count-ok">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          {{ importOkCount }} valides
+        </span>
+        <span class="import-count-err" *ngIf="importErrors > 0">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          {{ importErrors }} erreurs
+        </span>
+      </div>
+
+      <div class="import-rows-list">
+        <div class="import-row" *ngFor="let r of importRows" [class.import-row-err]="r.status === 'error'">
+          <span class="import-row-icon">
+            <svg *ngIf="r.status === 'ok'" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            <svg *ngIf="r.status === 'error'" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </span>
+          <span class="import-row-date" *ngIf="r.status === 'ok'">{{ r.date }}</span>
+          <span class="import-row-desc">{{ r.status === 'ok' ? r.description : r.error }}</span>
+          <span class="import-row-type" *ngIf="r.status === 'ok'" [class.income]="r.type === 'INCOME'" [class.expense]="r.type === 'EXPENSE'">
+            {{ r.type === 'INCOME' ? 'Revenu' : 'Dépense' }}
+          </span>
+          <span class="import-row-amount" *ngIf="r.status === 'ok'">{{ r.amount | number:'1.2-2' }} €</span>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-outline" (click)="closeImportModal()">Annuler</button>
+        <button class="btn btn-primary" (click)="confirmImport()" [disabled]="importLoading || importOkCount === 0">
+          <span *ngIf="!importLoading">Importer {{ importOkCount }} transaction(s)</span>
+          <span *ngIf="importLoading">Importation en cours…</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Résultat -->
+    <div class="import-result" *ngIf="importDone">
+      <div class="import-result-icon" [class.success]="importErrors === 0">
+        <svg *ngIf="importErrors === 0" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <svg *ngIf="importErrors > 0" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <h3 class="import-result-title">
+        {{ importSuccess }} transaction(s) importée(s) avec succès
+        <span *ngIf="importErrors > 0"> · {{ importErrors }} erreur(s)</span>
+      </h3>
+      <button class="btn btn-primary" (click)="closeImportModal()">Fermer</button>
+    </div>
+
+  </div>
+</div>
+
 <!-- Modal Confirmation suppression -->
 <div class="modal-overlay" *ngIf="deleteConfirmId !== null" (click)="cancelDelete()">
   <div class="modal confirm-modal" (click)="$event.stopPropagation()">
-    <div class="confirm-icon">⚠️</div>
+    <div class="confirm-icon"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: #f59e0b;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
     <h2>Supprimer cette transaction ?</h2>
     <p>Cette action est irréversible.</p>
     <div class="modal-actions">
