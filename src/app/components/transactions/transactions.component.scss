@@ -619,4 +619,5 @@ th:nth-child(5), td:nth-child(5) { text-align: right; }
   .confirm-icon { display: flex; justify-content: center; margin-bottom: 16px; }
   h2 { margin-bottom: 8px; }
   p { color: var(--text-muted); font-size: 14px; }
+  .modal-actions { justify-content: center; }
 }
